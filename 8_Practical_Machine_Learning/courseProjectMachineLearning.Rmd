@@ -1,0 +1,211 @@
+---
+title: "Project Practical Machine Learning"
+author: "Jose Nicolas Molina"
+date: "2022-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+The goal of this project is to predict how six participants performed barbell lifts correctly and incorrectly in five different ways. Data from accelerometers attached to the belt, forearm, upper arm, and dumbbell are used to determine how well each participant was performing the barbell lifts. The machine learning algorithm that is developed in this report is applied to 20 test cases available in the test data. The predictions are used for the project prediction evaluation questionnaire for qualification.
+
+## Data Loading, Packages and Library
+
+Download data from url:
+
+```{r}
+dataTrain <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+
+dataTest <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+```
+
+Load the datasets
+
+```{r}
+training <- read.csv(url(dataTrain))
+testing  <- read.csv(url(dataTest))
+```
+
+Load packages and library
+
+```{r}
+library(knitr)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(randomForest)
+library(corrplot)
+```
+
+Data spliting
+
+A training data set (70%) will be created for the modeling process and a test data set (30%) for validations. The testing data set is used in the choice of results for the prediction quiz.
+
+```{r}
+inTrain  <- createDataPartition(training$classe, p=0.7, list=FALSE)
+trainSet <- training[inTrain, ]
+testSet  <- training[-inTrain, ]
+```
+
+Exploratory Analysis and Cleaning
+
+```{r}
+dim(trainSet)
+dim(testSet)
+```
+
+Note: The data created from trainSet and testSet contains 160 variables. In the variables there are NA, which will be applied cleaning. Likewise, unnecessary variables such as Nearly Zero Variance and id are eliminated.
+
+Remove NAs in variables
+
+```{r}
+nonNA    <- sapply(trainSet, function(x) mean(is.na(x))) > 0.95
+trainSet <- trainSet[, nonNA==FALSE]
+testSet  <- testSet[, nonNA==FALSE]
+```
+
+```{r}
+dim(trainSet)
+dim(testSet)
+```
+
+Remove variables with almost zero variance
+
+```{r}
+neZeVar <- nearZeroVar(trainSet)
+trainSet <- trainSet[, -neZeVar]
+testSet  <- testSet[, -neZeVar]
+```
+
+```{r}
+dim(trainSet)
+dim(testSet)
+```
+
+Remove id variables
+
+```{r}
+trainSet <- trainSet[, -(1:5)]
+testSet  <- testSet[, -(1:5)]
+```
+
+```{r}
+dim(trainSet)
+dim(testSet)
+```
+
+Note: 54 will be the variables that will be analyzed after the cleaning process.
+
+Correlation Analysis
+
+```{r}
+cMatrix <- cor(trainSet[, -54])
+corrplot(cMatrix, order = "FPC", method = "color", type = "lower", 
+         tl.cex = 0.8, tl.col = rgb(0, 0, 0))
+```
+
+Note: Variables with high correlations are presented in dark colors.
+
+## Prediction Model Building
+
+Random Forest, Decision Trees and Generalized Boosted Model methods are applied to model the regressions. The one with the highest precision, when applied to the test data set, is used in the predictions of the questionnaire.
+
+### Random Forest
+
+Model fit
+
+```{r}
+fitRfc <- trainControl(method="cv", number=3, verboseIter=FALSE)
+modFitRf <- train(classe ~ ., data=trainSet, method="rf",
+                          trControl=fitRfc)
+modFitRf$finalModel
+```
+
+Prediction on test dataset
+
+```{r}
+predictRf <- predict(modFitRf, newdata=testSet)
+confMatRf <- confusionMatrix(predictRf, as.factor(testSet$classe))
+confMatRf
+```
+
+Plot matrix results
+
+```{r}
+plot(confMatRf$table, col = confMatRf$byClass, 
+     main = paste("Random Forest - Accuracy =",
+                  round(confMatRf$overall['Accuracy'], 4)))
+```
+
+### Decision Trees 
+
+Model fit
+
+```{r}
+set.seed(12345)
+modFitDTree <- rpart(classe ~ ., data=trainSet, method="class")
+fancyRpartPlot(modFitDTree)
+```
+
+Prediction on test dataset
+
+```{r}
+predictDTree <- predict(modFitDTree, newdata=testSet, type="class")
+confMatDTree <- confusionMatrix(predictDTree, as.factor(testSet$classe))
+confMatDTree
+```
+
+Plot matrix results
+
+```{r}
+plot(confMatDTree$table, col = confMatDTree$byClass, 
+     main = paste("Decision Tree - Accuracy =",
+                  round(confMatDTree$overall['Accuracy'], 4)))
+```
+
+### Generalized Boosted Model
+
+Model fit
+
+```{r}
+set.seed(12345)
+fitGBM <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+modFitGBM  <- train(classe ~ ., data=trainSet, method = "gbm",
+                    trControl =fitGBM, verbose = FALSE)
+modFitGBM$finalModel
+```
+
+Prediction on test dataset
+
+```{r}
+predictGBM <- predict(modFitGBM, newdata=testSet)
+cfMatGBM <- confusionMatrix(predictGBM, as.factor(testSet$classe))
+cfMatGBM
+```
+
+Plot matrix results
+
+```{r}
+plot(cfMatGBM$table, col = cfMatGBM$byClass, 
+     main = paste("GBM - Accuracy =", round(cfMatGBM$overall['Accuracy'], 4)))
+```
+
+## Prediction
+
+The Random Forest model is used to predict the 20 results of the questionnaire for qualification
+
+Random Forest : 0.999
+
+Decision Tree : 0.7342
+
+GBM : 0.9871
+
+```{r}
+predictTest<- predict(modFitRf, newdata=testing)
+predictTest
+```

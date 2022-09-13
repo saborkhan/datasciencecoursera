@@ -1,5 +1,2 @@
-## Data Science Specialization | John Hopkins Coursera
-
-[R Programming (JHU Coursera)](https://medium.com/@GalarnykMichael/in-progress-review-course-2-r-programming-jhu-coursera-ad27086d8438#.bzzr29fvo "Review + data.table")
-
-[The Data Scientist’s Toolbox (JHU Coursera)](https://medium.com/@GalarnykMichael/review-course-1-the-data-scientists-toolbox-jhu-coursera-4d7459458821#.5jpg133ln "Review + Going over Parts of Quiz")
+# projectPracticalMachineLearning
+The goal of this project is to predict how six participants performed barbell lifts correctly and incorrectly in five different ways. Data from accelerometers attached to the belt, forearm, upper arm, and dumbbell are used to determine how well each participant was performing the barbell lifts. The machine learning algorithm that is developed in this report is applied to 20 test cases available in the test data. The predictions are used for the project prediction evaluation questionnaire for qualification.
